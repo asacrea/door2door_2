@@ -1,0 +1,10 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "door2door"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-j6n3snzjy83s"
+s3_prefix = "door2door"
+region = "us-east-1"
+capabilities = "CAPABILITY_IAM"
+image_repositories = ["ExtractLivePositionFunction=314684862517.dkr.ecr.us-east-1.amazonaws.com/door2doorb8d2c2c0/extractlivepositionfunctionaca615b0repo"]

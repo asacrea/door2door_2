@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  python3.9
+
+  Sample SAM Template for door2door
+
+Globals:
+  Function:
+    Timeout: 900
+    MemorySize: 128
+    Environment:
+      Variables:
+        REGION_NAME: "us-east-1"
+  
+Resources:
+  ExtractLivePositionFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      PackageType: Image
+      Architectures:
+        - x86_64
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action: 's3:*'
+              Resource: '*'
+      Events:
+        MyScheduledEvent:
+          Type: Schedule
+          Properties:
+            Schedule: 'cron(20 19 * * ? *)'  # Runs every day each 6 hours
+    Metadata:
+      Dockerfile: Dockerfile
+      DockerContext: ./drive_extract
+      DockerTag: python3.9-v1
+
+Outputs:
+  FunctionArn:
+    # Value: !GetAtt ExtractLivePositionFunction.Arn
+    Value: !Ref ExtractLivePositionFunction
+    Description: "Extract Live Position Function ARN"
+#   # ServerlessRestApi is an implicit API created out of Events key under Serverless::Function
+#   # Find out more about other implicit resources you can reference within SAM
+#   # https://github.com/awslabs/serverless-application-model/blob/master/docs/internals/generated_resources.rst#api
+#   HelloWorldApi:
+#     Description: "API Gateway endpoint URL for Prod stage for Hello World function"
+#     Value: !Sub "https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/hello/"
+#   # HelloWorldFunctionIamRole:
+#   #   Description: "Implicit IAM Role created for Hello World function"
+#   #   Value: !GetAtt HelloWorldFunctionRole.Arn
