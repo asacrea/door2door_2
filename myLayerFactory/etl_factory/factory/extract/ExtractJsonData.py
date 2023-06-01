@@ -41,7 +41,7 @@ class ExtractJsonData(AbsExtraction):
         except:
             result['Validation'] = "FAILURE"
             result['Reason'] = "Error while reading Json file in the source bucket"
-            print('Error while reading Json')
+            print('Error while reading Json ')
             return result, None
         
     def connect(self):
