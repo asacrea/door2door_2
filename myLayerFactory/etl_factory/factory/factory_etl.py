@@ -16,7 +16,7 @@ class ETL_Factory(AbsFactory):
 
         print("--------------------------------------")
         print("Extracting Files:", self.path, "\n")
-        method = "ExtractJsonData"
+        method = "ExtractS3JsonData"
         path_method = "extract"
         
         module = load_class(path_method, method, AbsExtraction)
@@ -31,7 +31,7 @@ class ETL_Factory(AbsFactory):
     def transform_method(self):
 
         print("--------------------------------------")
-        print("Extracting Files:", self.path, "\n")
+        print("Transforming Files:", self.path, "\n")
         method = "JsonLivePositionTransform"
         path_method = "transform"
 
@@ -40,8 +40,12 @@ class ETL_Factory(AbsFactory):
 
         print(self.transformed_data)
 
-    def load_method(self, config):
+    def load_method(self, load_path):
+        pass
+        # print("--------------------------------------")
+        # print("Loading Files:", self.path, "\n")
+        # method = "LoadDataToS3"
+        # path_method = "transform"
         # for _class, path in config["load"]:
         #     factory_load = load_class.load_factory(_class, path)
         #     factory_load.execute()
-        pass

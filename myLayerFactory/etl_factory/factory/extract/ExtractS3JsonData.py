@@ -4,7 +4,7 @@ import boto3
 import pandas as pd
 from extract.abs_extraction import AbsExtraction
 
-class ExtractJsonData(AbsExtraction):
+class ExtractS3JsonData(AbsExtraction):
 
     def extract(self, file_name):
         
