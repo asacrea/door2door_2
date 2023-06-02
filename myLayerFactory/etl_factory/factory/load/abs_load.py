@@ -11,9 +11,5 @@ class AbsLoad(abc.ABC):
         self._process = process
 
     @abc.abstractmethod
-    def connect_s3(self):
-        pass
-
-    @abc.abstractmethod
     def load_s3(self):
         pass

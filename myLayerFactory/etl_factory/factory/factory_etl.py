@@ -4,6 +4,7 @@ from abs_factory import AbsFactory
 from loader import load_class
 from transform.abs_transform import AbsTransform
 from extract.abs_extraction import AbsExtraction
+from load.abs_load import AbsLoad
 
 class ETL_Factory(AbsFactory):
     def __init__(self, path) -> None:
@@ -41,11 +42,11 @@ class ETL_Factory(AbsFactory):
         print(self.transformed_data)
 
     def load_method(self, load_path):
-        pass
-        # print("--------------------------------------")
-        # print("Loading Files:", self.path, "\n")
-        # method = "LoadDataToS3"
-        # path_method = "transform"
-        # for _class, path in config["load"]:
-        #     factory_load = load_class.load_factory(_class, path)
-        #     factory_load.execute()
+        
+        print("--------------------------------------")
+        print(f"Loading Files to: {load_path}\n")
+        method = "LoadDataToS3"
+        path_method = "load"
+
+        factory_load = load_class(path_method, method, AbsLoad)
+        factory_load.execute(self.transformed_data, load_path)
