@@ -1,7 +1,4 @@
-import os
-import json
 import boto3
-import pandas as pd
 from extract.abs_extraction import AbsExtraction
 
 class ExtractS3JsonData(AbsExtraction):
@@ -27,6 +24,3 @@ class ExtractS3JsonData(AbsExtraction):
             result['Reason'] = "Error while reading Json file in the source bucket"
             print('Error while reading Json ')
             return result, None
-        
-    def connect(self):
-        pass

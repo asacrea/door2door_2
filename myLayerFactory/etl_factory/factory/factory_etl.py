@@ -1,5 +1,3 @@
-import os
-import json
 from abs_factory import AbsFactory
 from loader import load_class
 from transform.abs_transform import AbsTransform
@@ -7,11 +5,15 @@ from extract.abs_extraction import AbsExtraction
 from load.abs_load import AbsLoad
 
 class ETL_Factory(AbsFactory):
+    '''
+        This class allow you to create a ETL object based in Factory Design pattern
+    '''
     def __init__(self, path) -> None:
         super().__init__()
         self.path = path
         self.data = None
         self.transformed_data = None
+        self.file_name = None
 
     def extract_method(self):
 
@@ -23,11 +25,7 @@ class ETL_Factory(AbsFactory):
         module = load_class(path_method, method, AbsExtraction)
         response, self.data = module.extract(str(self.path))
         
-        # print(f"\nRuta: {self.path}\n")
-        # self.data["Dataframes"]["self.path"] = df
         print("Successfully extracted:", self.path)
-        print(self.data)
-
 
     def transform_method(self):
 
@@ -38,8 +36,6 @@ class ETL_Factory(AbsFactory):
 
         module = load_class(path_method, method, AbsTransform)
         result, self.transformed_data = module.execute(self.data)
-
-        print(self.transformed_data)
 
     def load_method(self, load_path):
         
