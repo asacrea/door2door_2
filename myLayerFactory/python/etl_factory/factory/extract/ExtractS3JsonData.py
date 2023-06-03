@@ -1,16 +1,16 @@
 import boto3
-from extract.abs_extraction import AbsExtraction
+from etl_factory.factory.extract.abs_extraction import AbsExtraction
 
 class ExtractS3JsonData(AbsExtraction):
 
-    def extract(self, file_name):
+    def extract(self, parameters):
         
         result = {}
         # Create a boto3 S3 client
         s3 = boto3.client('s3')
 
-        bucket_name = "dood-bucket-2"
-        key_name = f"source/{'2019-06-01-15-17-4-events.json'}"
+        bucket_name = parameters["bucket_name"]
+        key_name = parameters["key_name"]
         
         try:
             #Get data S3 data from a especific folder in a bucket
@@ -18,6 +18,7 @@ class ExtractS3JsonData(AbsExtraction):
 
             print("Successfully read")
             result['Validation'] = "SUCCESS"
+            result['Reason'] = ""
             return result, file_content
         except:
             result['Validation'] = "FAILURE"

@@ -1,6 +1,6 @@
 import json
 import pandas as pd
-from transform.abs_transform import AbsTransform
+from etl_factory.factory.transform.abs_transform import AbsTransform
 
 class JsonLivePositionTransform(AbsTransform):
 

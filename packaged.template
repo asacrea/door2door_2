@@ -60,7 +60,7 @@ Resources:
         Fn::GetAtt:
         - StartCodeBuildProjectFunction
         - Arn
-      Update_lambda_layer: 'yes'
+      Update_lambda_layer: 'no'
     DependsOn:
     - LambdaLayerParameter
   LambdaFunctionS3Object:
@@ -409,7 +409,7 @@ Resources:
     Properties:
       LayerName: etlfactory
       Description: My layer
-      ContentUri: s3://aws-cloud-formation-artifacts/71b3b1d5e30f9fdeb089fd82be674533
+      ContentUri: s3://aws-cloud-formation-artifacts/321cb9a0e81b17b790f2145b481be034
       CompatibleRuntimes:
       - python3.10
       LicenseInfo: MIT

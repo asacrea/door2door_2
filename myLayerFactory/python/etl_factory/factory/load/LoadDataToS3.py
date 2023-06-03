@@ -1,5 +1,5 @@
 import pandas as pd
-from load.abs_load import AbsLoad
+from etl_factory.factory.load.abs_load import AbsLoad
 
 class LoadDataToS3(AbsLoad):
 
