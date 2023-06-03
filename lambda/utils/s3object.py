@@ -13,23 +13,16 @@ def lambda_handler(event, context):
     #Retrieve parameters
     the_bucket = event['ResourceProperties']['the_bucket']
     dirs_to_create = event['ResourceProperties']['dirs_to_create']
-    file_content = event['ResourceProperties']['file_content']
-    files_prefix =  event['ResourceProperties']['file_prefix']
-    print("file content is: " + file_content)
-    print("file prefix is: " +  files_prefix)
 
     try:
         if the_event in ('Create', 'Update'):
-            print("Request folder:", str(dirs_to_create))
-            for dir_name in dirs_to_create:
+            print("Request folder:", str(dirs_to_create).split(","))
+            for dir_name in str(dirs_to_create).split(","):
                 print('Creating: ', str(dir_name))
                 s3.put_object(Bucket=the_bucket,
                               Key=(dir_name
                                  + '/'))
-            #if file_prefix == "" or file_content == "":
-            s3_resource.Object(the_bucket, files_prefix).put(Body=file_content)
-            #else:
-            #   print("No file created")
+              
         elif the_event == 'Delete':
             print("Deleting S3 content...")
             bucket = s3_resource.Bucket(the_bucket)

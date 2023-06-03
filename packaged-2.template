@@ -25,6 +25,9 @@ Parameters:
     Type: String
     Description: Source Folder to upload raw csv dataset to trigger the AWS Step functions
     Default: source
+  pDatasetSchema:
+    Type: String
+    Description: Expected Schema for the source DatasetSchema
   pEmailforNotification:
     Description: Valid email address to send success or error notification
     Type: String
@@ -70,13 +73,13 @@ Resources:
       - Ref: LambdaLayerCfn
       Description: Work with S3 Buckets!
       Handler: s3object.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
+      CodeUri: s3://aws-cloud-formation-artifacts/19095d1ab1e773955e490e3f766d6339
       Role:
         Fn::GetAtt:
         - LambdaRole
         - Arn
       Timeout: 360
-      Runtime: python3.10
+      Runtime: python3.9
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -133,9 +136,9 @@ Resources:
           \      - cd ./build && zip -r ../temp.zip .\n      - pwd\n      - ls -l\n\
           \      - ls -lrt\n      - cd ..\n      - ls -l\n      - out=$(aws lambda\
           \ publish-layer-version --layer-name ${LayerName} --zip-file fileb://temp.zip\
-          \ --compatible-runtimes python3.10| jq .LayerVersionArn |tr -d \"\\\"\"\
-          )\n      - aws ssm put-parameter  --name ${SSMParameterName} --value ${out}\
-          \ --type \"String\" --overwrite\n"
+          \ --compatible-runtimes python3.8 python3.9| jq .LayerVersionArn |tr -d\
+          \ \"\\\"\")\n      - aws ssm put-parameter  --name ${SSMParameterName} --value\
+          \ ${out} --type \"String\" --overwrite\n"
       ServiceRole:
         Fn::GetAtt:
         - CodeBuildRole
@@ -332,6 +335,21 @@ Resources:
         Status: Enabled
       BucketName:
         Fn::Sub: ${pS3BucketName}
+      NotificationConfiguration:
+        LambdaConfigurations:
+        - Event: s3:ObjectCreated:*
+          Filter:
+            S3Key:
+              Rules:
+              - Name: prefix
+                Value:
+                  Fn::Sub: ${pSourceFolder}/
+              - Name: suffix
+                Value: .csv
+          Function:
+            Fn::GetAtt:
+            - StartStepFunction
+            - Arn
   StartCodeBuildProjectFunction:
     Type: AWS::Serverless::Function
     Description: Start Code Build project by lambda function
@@ -343,7 +361,7 @@ Resources:
         - LambdaRole
         - Arn
       Handler: start_codebuild.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
+      CodeUri: s3://aws-cloud-formation-artifacts/19095d1ab1e773955e490e3f766d6339
       Runtime: python3.10
       Timeout: 500
       Environment:
@@ -366,7 +384,7 @@ Resources:
         - LambdaRole
         - Arn
       Handler: start_etl.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
+      CodeUri: s3://aws-cloud-formation-artifacts/19095d1ab1e773955e490e3f766d6339
       Runtime: python3.10
       Timeout: 500
       MemorySize: 512
@@ -378,7 +396,7 @@ Resources:
         - LambdaRole
         - Arn
       Handler: start_crawler.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
+      CodeUri: s3://aws-cloud-formation-artifacts/19095d1ab1e773955e490e3f766d6339
       Runtime: python3.10
       Timeout: 60
   CrawlerStatusCheckFunction:
@@ -389,7 +407,7 @@ Resources:
         - LambdaRole
         - Arn
       Handler: check_crawler.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
+      CodeUri: s3://aws-cloud-formation-artifacts/19095d1ab1e773955e490e3f766d6339
       Runtime: python3.10
       Timeout: 30
       Environment:
@@ -402,7 +420,7 @@ Resources:
       Description: My layer
       ContentUri: s3://aws-cloud-formation-artifacts/dcfdf8676dbf4c9b3388cd8a32ccf93b
       CompatibleRuntimes:
-      - python3.10
+      - python3.9
       LicenseInfo: MIT
   LambdaLayerFactory:
     Type: AWS::Serverless::LayerVersion
@@ -421,28 +439,13 @@ Resources:
         - BasicLambdaRole
         - Arn
       Handler: start_step_function.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
+      CodeUri: s3://aws-cloud-formation-artifacts/19095d1ab1e773955e490e3f766d6339
       Runtime: python3.10
       Timeout: 60
       Environment:
         Variables:
           STEP_FUNC_ARN:
             Ref: MyStepFunction
-      Events:
-        S3Event:
-          Type: S3
-          Properties:
-            Bucket:
-              Ref: S3Bucket
-            Events: s3:ObjectCreated:Put
-            Filter:
-              S3Key:
-                Rules:
-                - Name: prefix
-                  Value:
-                    Fn::Sub: ${pSourceFolder}/
-                - Name: suffix
-                  Value: .json
   MyStepFunction:
     Type: AWS::StepFunctions::StateMachine
     Properties:

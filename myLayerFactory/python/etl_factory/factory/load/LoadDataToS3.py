@@ -4,7 +4,7 @@ from load.abs_load import AbsLoad
 class LoadDataToS3(AbsLoad):
 
     def execute(self, transformed_data, load_path):
-        bucket_name = "dood-bucket"
+        bucket_name = "source"
         key_name = "stage"
         print("Loading information")
 

@@ -30,9 +30,5 @@
     {
       "ParameterKey": "pEmailforNotification",
       "ParameterValue": "sacreandres@gmail.com"
-    },
-    {
-      "ParameterKey": "pDatasetSchema",
-      "ParameterValue": "{\"event\":{\"type\": \"string\"}, \"on\":{\"type\": \"string\"}, \"at\": {\"type\": \"datetime\", \"format\": \"%Y-%m-%dT%H:%M:%S.%fZ\"}, \"data\": {\"type\": \"dict\", \"schema\": {\"id\": {\"type\": \"string\"},\"start\": {\"type\": \"datetime\", \"format\": \"%Y-%m-%dT%H:%M:%S.%fZ\"}, \"finish\": {\"type\": \"datetime\", \"format\": \"%Y-%m-%d %H:%M:%S\"}}},\"organization_id\": {\"type\": \"string\"}}"
     }
   ]

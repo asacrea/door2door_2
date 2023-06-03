@@ -1,0 +1,348 @@
+Transform: AWS::Serverless-2016-10-31
+
+Description: "This is a template to create ETL pipeline pattern with AWS Step Functions to deploy door2door Live position ETL pipeline"
+
+Parameters: 
+
+  pS3BucketName:
+    Type: String
+    Description: "Unique S3 bucket to create"
+    AllowedPattern: "[a-zA-Z][a-zA-Z0-9_-]*"
+
+  pStageFolder:
+    Type: String
+    Description: "Folder to store staging files"
+    Default: "stage"
+
+  pTransformFolder:
+    Type: String
+    Description: "Folder to store transformed dataset"
+    Default: "transform"
+
+  pArchiveFolder:
+    Type: String
+    Description: "Folder to store archived dataset"
+    Default: "archive"
+
+  pErrorFolder:
+    Type: String
+    Description: "Folder to store dataset for any error"
+    Default: "error"
+
+  pSourceFolder:
+    Type: String
+    Description: "Source Folder to upload raw csv dataset to trigger the AWS Step functions"
+    Default: "source"
+
+Resources:
+
+  LambdaLayerParameter:
+    Type: AWS::SSM::Parameter
+    Properties:
+      Name: !Sub ${AWS::StackName}_lambda_layer
+      Type: String
+      Value: "NA"
+
+  S3CustomResource:
+    Type: Custom::S3CustomResource
+    Properties:
+      ServiceToken: !GetAtt LambdaFunctionS3Object.Arn
+      the_bucket: !Ref S3Bucket
+      dirs_to_create: !Join [ ",", [!Ref pSourceFolder,!Ref pStageFolder,!Ref pErrorFolder,!Ref pArchiveFolder,!Ref pTransformFolder]]
+      file_prefix: "glue/gluejob.py"
+      file_content: !Sub |
+        import sys
+        from awsglue.transforms import *
+        from awsglue.utils import getResolvedOptions
+        from pyspark.context import SparkContext
+        from awsglue.context import GlueContext
+        from awsglue.job import Job
+
+        args = getResolvedOptions(sys.argv, ['JOB_NAME'])
+
+        sc = SparkContext()
+        glueContext = GlueContext(sc)
+        spark = glueContext.spark_session
+        job = Job(glueContext)
+        job.init(args['JOB_NAME'], args)
+        datasource0 = glueContext.create_dynamic_frame.from_catalog(database = "${GlueDB}", table_name = "${pStageFolder}", transformation_ctx = "datasource0")
+        applymapping1 = ApplyMapping.apply(frame = datasource0, mappings = [("date", "string", "date", "string"), ("description", "string", "description", "string"), ("deposits", "double", "deposits", "double"), ("withdrawls", "double", "withdrawls", "double"), ("balance", "double", "balance", "double"), ("year", "long", "year", "int"), ("month", "long", "month", "int"), ("day", "long", "day", "int")], transformation_ctx = "applymapping1")
+        resolvechoice2 = ResolveChoice.apply(frame = applymapping1, choice = "make_struct", transformation_ctx = "resolvechoice2")
+
+        dropnullfields3 = DropNullFields.apply(frame = resolvechoice2, transformation_ctx = "dropnullfields3")
+
+        datasink4 = glueContext.write_dynamic_frame.from_options(frame = dropnullfields3, connection_type = "s3", format_options = {"compression": "snappy"}, connection_options = {"path": "s3://${pS3BucketName}/${pTransformFolder}","partitionKeys":["year","month","day"]}, format = "glueparquet", transformation_ctx = "datasink4")
+        job.commit()
+
+  StartCodeBuildProject:
+    Type: Custom::StartCodeBuildProject
+    Properties:
+      ServiceToken: !GetAtt StartCodeBuildProjectFunction.Arn
+      Update_lambda_layer: "yes"
+    DependsOn:
+      - "LambdaLayerParameter"
+
+  CodeBuildRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "codebuild.amazonaws.com" 
+            Action: 
+              - "sts:AssumeRole"  
+      ManagedPolicyArns:
+          - !Ref BasicManagedPolicyforCodeBuild
+
+  BasicManagedPolicyforCodeBuild: 
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "This is sample CFN template"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: "lambdalayeraccess"
+            Effect: "Allow"
+            Action: 
+              -  "lambda:Publish*"
+              -  "lambda:List*"
+            Resource: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:layer:${AWS::StackName}-pandas-layer"
+
+          - Sid: "logaccess"
+            Effect: "Allow"
+            Action: 
+              -  logs:CreateLogGroup
+              -  logs:CreateLogStream
+              -  logs:PutLogEvents
+            Resource: "*"
+
+          - Sid: "SSMPutparamater"
+            Effect: "Allow"
+            Action:
+              - ssm:PutParameter
+            Resource: !Sub "arn:aws:ssm:${AWS::Region}:${AWS::AccountId}:parameter/${LambdaLayerParameter}"
+
+  CodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Description: Test build to validate the resources created by CFN templates
+      Source:
+        Type: NO_SOURCE
+        BuildSpec: |
+          version: 0.2
+          phases:
+            build:
+              commands:
+                - mkdir -p build/python
+                - echo "pandas==1.2.3" > requirements.txt
+                - echo "numpy==1.20.2" >> requirements.txt
+                - echo "s3fs==2022.10.0" >> requirements.txt
+                - echo "pytz==2022.5" >> requirements.txt
+                - pip install -r requirements.txt -t ./build/python
+                - cd ./build && zip -r ../temp.zip .
+                - pwd
+                - ls -l
+                - ls -lrt
+                - cd ..
+                - ls -l
+                - out=$(aws lambda publish-layer-version --layer-name ${LayerName} --zip-file fileb://temp.zip --compatible-runtimes python3.7 python3.8| jq .LayerVersionArn |tr -d "\"")
+                - aws ssm put-parameter  --name ${SSMParameterName} --value ${out} --type "String" --overwrite
+      ServiceRole:
+        Fn::GetAtt: [ CodeBuildRole, Arn ]
+      Artifacts:
+        Type: NO_ARTIFACTS
+      Environment:
+        Type: LINUX_CONTAINER
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/standard:3.0
+        EnvironmentVariables:
+          - Name: LayerName
+            Type: PLAINTEXT
+            Value: !Sub "${AWS::StackName}-pandas-layer"
+          - Name: SSMParameterName
+            Type: PLAINTEXT
+            Value: !Ref LambdaLayerParameter
+
+      TimeoutInMinutes: 30
+
+  BasicLambdaRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com" 
+            Action: 
+              - "sts:AssumeRole"  
+      ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+          - !Ref BasicManagedPolicyforlambda
+
+  BasicManagedPolicyforlambda: 
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "This is sample CFN template"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement:
+          - Sid: "s3listaccess"
+            Effect: "Allow"
+            Action: 
+              - "s3:List*"
+            Resource: !Sub "arn:aws:s3:::${pS3BucketName}"
+
+          - Sid: "s3putaccess"
+            Effect: "Allow"
+            Action: 
+              - "s3:Get*"
+              - "s3:Put*"
+              - "s3:Delete*"
+            Resource: !Sub "arn:aws:s3:::${pS3BucketName}/*"
+
+  LambdaRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Effect: "Allow"
+            Principal: 
+              Service: 
+                - "lambda.amazonaws.com" 
+            Action: 
+              - "sts:AssumeRole"  
+      ManagedPolicyArns:
+          - !Ref ManagedPolicyforlambda
+          - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+          
+  ManagedPolicyforlambda: 
+    Type: "AWS::IAM::ManagedPolicy"
+    Properties:
+      Description: "This is sample CFN template"
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - Sid: "codebuild"
+            Effect: "Allow"
+            Action: 
+              - "codebuild:StartBuild"
+              - "codebuild:BatchGet*"
+              - "codebuild:List*"
+            Resource: !GetAtt  CodeBuildProject.Arn
+          - Sid: "s3listaccess"
+            Effect: "Allow"
+            Action: 
+              - "s3:List*"
+            Resource: !Sub "arn:aws:s3:::${pS3BucketName}"
+          - Sid: "s3putaccess"
+            Effect: "Allow"
+            Action: 
+              - "s3:Get*"
+              - "s3:Put*"
+              - "s3:Delete*"
+            Resource: !Sub "arn:aws:s3:::${pS3BucketName}/*"
+          - Sid: "s3deletebucket"
+            Effect: "Allow"
+            Action: 
+              - "s3:DeleteBucket"
+            Resource: !Sub "arn:aws:s3:::${pS3BucketName}"
+          - Sid: "glue"
+            Effect: "Allow"
+            Action: "glue:*"
+            Resource: 
+                - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:database/${GlueDB}"
+                - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:table/${GlueDB}/*"
+                - !Sub "arn:aws:glue:${AWS::Region}:${AWS::AccountId}:catalog"
+
+  GlueDB:
+    Type: AWS::Glue::Database
+    Properties: 
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput: 
+        Description: Glue Database
+
+  S3Bucket:
+    Type: AWS::S3::Bucket    
+    Properties:
+      VersioningConfiguration:
+        Status: Enabled
+      BucketName: !Sub ${pS3BucketName}
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: 's3:ObjectCreated:*'
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: !Sub "${pSourceFolder}/"
+                  - Name: suffix
+                    Value: .csv
+            Function: !GetAtt  StartStepFunction.Arn
+      BucketEncryption: 
+        ServerSideEncryptionConfiguration: 
+          - ServerSideEncryptionByDefault:
+              SSEAlgorithm: AES256
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+
+  S3InvokeLambdaPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      SourceAccount: !Sub ${AWS::AccountId}
+      Action: lambda:InvokeFunction
+      FunctionName: !GetAtt  StartStepFunction.Arn
+      Principal: s3.amazonaws.com
+      SourceArn: !Sub arn:aws:s3:::${pS3BucketName}
+
+  StartStepFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Role: !GetAtt BasicLambdaRole.Arn
+      Handler: start_step_function.lambda_handler
+      CodeUri: lambda
+      Runtime: python3.9
+      Timeout: 60
+
+  LambdaFunctionS3Object:
+     Type: AWS::Serverless::Function
+     Properties:
+       Layers: 
+         - !Ref LambdaLayer
+       Description: "Work with S3 Buckets!"
+       Handler: s3object.lambda_handler
+       CodeUri: lambda
+       Role: !GetAtt LambdaRole.Arn
+       Timeout: 360
+       Runtime: python3.9
+  StartCodeBuildProjectFunction:
+    Type: AWS::Serverless::Function
+    Description: "Start Code Build project by lambda function"
+    Properties:
+      Layers: 
+         - !Ref LambdaLayer
+      Role: !GetAtt LambdaRole.Arn
+      Handler: start_codebuild.lambda_handler
+      CodeUri: lambda
+      Runtime: python3.9
+      Timeout: 500
+      Environment:
+        Variables:
+          PROJECT_NAME: !Ref CodeBuildProject
+
+  LambdaLayer:
+      Type: AWS::Serverless::LayerVersion
+      Properties:
+        LayerName: cfnresource-lib
+        Description: My layer
+        ContentUri: ./myLayer
+        CompatibleRuntimes:
+          - python3.9
+          - python3.8
+          - python3.7
+        LicenseInfo: MIT

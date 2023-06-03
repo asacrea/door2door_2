@@ -9,8 +9,8 @@ class ExtractS3JsonData(AbsExtraction):
         # Create a boto3 S3 client
         s3 = boto3.client('s3')
 
-        bucket_name = "dood-bucket"
-        key_name = f"raw/{'2019-06-01-15-17-4-events.json'}"
+        bucket_name = "dood-bucket-2"
+        key_name = f"source/{'2019-06-01-15-17-4-events.json'}"
         
         try:
             #Get data S3 data from a especific folder in a bucket
