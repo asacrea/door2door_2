@@ -681,7 +681,7 @@ Resources:
       DatabaseName: !Ref GlueDB
       Targets:
         S3Targets:
-          - Path: s3://data-architecture-layer/alpha/stage
+          - Path: !Sub "s3://${pS3BucketName}/${pStageFolder}"
 
 
 Outputs:

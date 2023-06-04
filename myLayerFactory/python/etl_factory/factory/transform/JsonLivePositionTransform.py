@@ -20,6 +20,8 @@ class JsonLivePositionTransform(AbsTransform):
                     df_dataframe = pd.concat(list_periods, ignore_index=True)
                     data_column = pd.json_normalize(df_dataframe["data"])
                     df_dataframe = pd.concat([df_dataframe.drop("data", axis=1), data_column], axis=1)
+                    df_dataframe = df_dataframe.reset_index()
+                    print(df_dataframe)
                     df_data[item] = df_dataframe
 
             print("File Successfully Transformed")

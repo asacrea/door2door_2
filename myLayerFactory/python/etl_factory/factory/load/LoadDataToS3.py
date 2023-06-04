@@ -13,6 +13,6 @@ class LoadDataToS3(AbsLoad):
             print(load_path + target_file_name)
             transformed_key = load_path + target_file_name
 
-            df.to_csv(transformed_key, index=True)
+            df.to_csv(transformed_key)
 
         print("Successfuly moved file to  : " + transformed_key)

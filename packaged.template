@@ -418,7 +418,7 @@ Resources:
     Properties:
       LayerName: etlfactory
       Description: My layer
-      ContentUri: s3://aws-cloud-formation-artifacts/1d379521677ea1b051fdb63e10aefb56
+      ContentUri: s3://aws-cloud-formation-artifacts/70f0e377e62041f3390fa485a7629ea4
       CompatibleRuntimes:
       - python3.9
       LicenseInfo: MIT
@@ -612,7 +612,8 @@ Resources:
         Ref: GlueDB
       Targets:
         S3Targets:
-        - Path: s3://data-architecture-layer/alpha/stage
+        - Path:
+            Fn::Sub: s3://${pS3BucketName}/${pStageFolder}
 Outputs:
   GlueDBOutput:
     Description: GlueDB Name

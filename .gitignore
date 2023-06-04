@@ -1,0 +1,7 @@
+__pycache__
+.env
+# Ignore all files and directories in the environment directory
+/environment/*
+
+#Ignore all local test development
+/local/*
