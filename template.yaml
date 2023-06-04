@@ -58,7 +58,7 @@ Resources:
     Type: Custom::StartCodeBuildProject
     Properties:
       ServiceToken: !GetAtt StartCodeBuildProjectFunction.Arn
-      Update_lambda_layer: "no"
+      Update_lambda_layer: "yes"
     DependsOn:
       - "LambdaLayerParameter"
 
@@ -72,7 +72,7 @@ Resources:
       CodeUri: lambda/utils
       Role: !GetAtt LambdaRole.Arn
       Timeout: 360
-      Runtime: python3.10
+      Runtime: python3.9
 
   CodeBuildRole:
     Type: "AWS::IAM::Role"
@@ -128,13 +128,10 @@ Resources:
           version: 0.2
           phases:
             build:
-              install:
-                runtime-versions:
-                  python: 3.10
               commands:
                 - mkdir -p build/python
-                - echo "pandas==1.2.3" > requirements.txt
                 - echo "numpy==1.20.2" >> requirements.txt
+                - echo "pandas==1.2.3" >> requirements.txt
                 - echo "s3fs==2022.10.0" >> requirements.txt
                 - echo "pytz==2022.5" >> requirements.txt
                 - pip install -r requirements.txt -t ./build/python
@@ -142,10 +139,11 @@ Resources:
                 - cd ./build && zip -r ../temp.zip .
                 - pwd
                 - ls -l
+                - ls -l
                 - ls -lrt
                 - cd ..
                 - ls -l
-                - out=$(aws lambda publish-layer-version --layer-name ${LayerName} --zip-file fileb://temp.zip --compatible-runtimes python3.10| jq .LayerVersionArn |tr -d "\"")
+                - out=$(aws lambda publish-layer-version --layer-name ${LayerName} --zip-file fileb://temp.zip --compatible-runtimes python3.8 python3.9| jq .LayerVersionArn |tr -d "\"")
                 - aws ssm put-parameter  --name ${SSMParameterName} --value ${out} --type "String" --overwrite
       ServiceRole:
         Fn::GetAtt: [ CodeBuildRole, Arn ]
@@ -249,7 +247,8 @@ Resources:
               - "s3:Get*"
               - "s3:Put*"
               - "s3:Delete*"
-            Resource: !Sub "arn:aws:s3:::${pS3BucketName}/*"
+            Resource: 
+              - !Sub "arn:aws:s3:::${pS3BucketName}/*"
           - Sid: "s3deletebucket"
             Effect: "Allow"
             Action: 
@@ -297,6 +296,14 @@ Resources:
               - !GetAtt  StartETLFunction.Arn
               - !GetAtt  StartCrawlerFunction.Arn
               - !GetAtt  CrawlerStatusCheckFunction.Arn
+          - Sid: "s3putaccess"
+            Effect: "Allow"
+            Action: 
+              - "s3:Get*"
+              - "s3:Put*"
+              - "s3:Delete*"
+            Resource: 
+              - !GetAtt  StartETLFunction.Arn
           - Sid: "glueaccess"
             Effect: "Allow"
             Action:
@@ -343,7 +350,7 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Handler: start_codebuild.lambda_handler
       CodeUri: lambda/utils
-      Runtime: python3.10
+      Runtime: python3.9
       Timeout: 500
       Environment:
         Variables:
@@ -361,7 +368,7 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Handler: start_etl.lambda_handler
       CodeUri: lambda/utils
-      Runtime: python3.10
+      Runtime: python3.8
       Timeout: 500
       MemorySize: 512
 
@@ -371,7 +378,7 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Handler: start_crawler.lambda_handler
       CodeUri: lambda/utils
-      Runtime: python3.10
+      Runtime: python3.9
       Timeout: 60
 
   CrawlerStatusCheckFunction:
@@ -380,7 +387,7 @@ Resources:
       Role: !GetAtt LambdaRole.Arn
       Handler: check_crawler.lambda_handler
       CodeUri: lambda/utils
-      Runtime: python3.10
+      Runtime: python3.9
       Timeout: 30
       Environment:
         Variables:
@@ -393,7 +400,7 @@ Resources:
         Description: My layer
         ContentUri: ./myLayerCfn
         CompatibleRuntimes:
-          - python3.10
+          - python3.9
         LicenseInfo: MIT
 
   LambdaLayerFactory:
@@ -403,7 +410,7 @@ Resources:
         Description: My layer
         ContentUri: ./myLayerFactory
         CompatibleRuntimes:
-          - python3.10
+          - python3.9
         LicenseInfo: MIT
 
   StartStepFunction:
@@ -412,7 +419,7 @@ Resources:
       Role: !GetAtt BasicLambdaRole.Arn
       Handler: start_step_function.lambda_handler
       CodeUri: lambda/utils
-      Runtime: python3.10
+      Runtime: python3.9
       Timeout: 60
       Environment:
         Variables:

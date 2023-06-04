@@ -18,34 +18,32 @@ class ETL_Factory(AbsFactory):
     def extract_method(self):
 
         print("--------------------------------------")
-        print("Extracting Files:", self.path, "\n")
-        method = "ExtractS3JsonData"
-        path_method = "extract"
-        
-        module = load_class(path_method, method, AbsExtraction)
+        print("Extracting Files:\n")
+        module = load_class(self.parameters["path_extract_method"], \
+                            self.parameters["extract_method"], \
+                            AbsExtraction)
         response, self.data = module.extract(self.parameters)
         
         print(f"{response['Validation']}: {response['Reason']}")
-        print(f"Location: {response['Location']}/ \
-                          {self.parameters['bucket_name']}/ \
-                          {self.parameters['key_name']}")
+        print(f"Location: {response['Location']}")
 
     def transform_method(self):
 
-        print("--------------------------------------")
-        print("Transforming Files:", self.path, "\n")
-        method = "JsonLivePositionTransform"
-        path_method = "transform"
-
-        module = load_class(path_method, method, AbsTransform)
+        print("-------------------------------------")
+        print("Transforming Files:\n")
+        module = load_class(self.parameters["path_transform_method"], \
+                            self.parameters["transform_method"], \
+                            AbsTransform)
         result, self.transformed_data = module.execute(self.data)
+        print(self.transformed_data)
 
     def load_method(self):
         
         print("--------------------------------------")
         print(f"Loading Files to: {self.parameters['load_path']}\n")
-        method = "LoadDataToS3"
-        path_method = "load"
-
-        factory_load = load_class(path_method, method, AbsLoad)
-        factory_load.execute(self.transformed_data, self.parameters["load_path"])
+        factory_load = load_class(self.parameters["path_load_method"], \
+                                  self.parameters["load_method"], \
+                                  AbsLoad)
+        factory_load.execute(self.transformed_data, \
+                             self.parameters["load_path"], \
+                             self.parameters["key_name"])

@@ -7,7 +7,8 @@ from etl_factory.factory.load.abs_load import AbsLoad
 def load_class(path, class_name, factory):
     try:
         factory_module = import_module("." + class_name, path)
-    except:
+    except Exception as e:
+        print(e)
         factory_module = import_module(".null_factory", path)
     
     classes = getmembers(factory_module, lambda m: isclass(m) and not isabstract(m))

@@ -3,16 +3,15 @@ from etl_factory.factory.load.abs_load import AbsLoad
 
 class LoadDataToS3(AbsLoad):
 
-    def execute(self, transformed_data, load_path):
-        bucket_name = "source"
-        key_name = "stage"
+    def execute(self, transformed_data, load_path, key_name):
         print("Loading information")
+        file_name = key_name.split("/")[-1].split(".")[0]
 
         # Upload the CSV file to string to S3
-        for name, df in transformed_data.items():
-            target_file_name = "{}{}".format(name, ".csv")
-            print(target_file_name)
-            transformed_key = "s3://" + bucket_name + '/' + key_name + '/' + target_file_name
+        for event, df in transformed_data.items():
+            target_file_name = "{}{}{}{}".format(file_name, "-", event, ".csv")
+            print(load_path + target_file_name)
+            transformed_key = load_path + target_file_name
 
             df.to_csv(transformed_key, index=True)
 

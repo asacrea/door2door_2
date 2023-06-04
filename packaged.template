@@ -60,7 +60,7 @@ Resources:
         Fn::GetAtt:
         - StartCodeBuildProjectFunction
         - Arn
-      Update_lambda_layer: 'no'
+      Update_lambda_layer: 'yes'
     DependsOn:
     - LambdaLayerParameter
   LambdaFunctionS3Object:
@@ -70,13 +70,13 @@ Resources:
       - Ref: LambdaLayerCfn
       Description: Work with S3 Buckets!
       Handler: s3object.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
+      CodeUri: s3://aws-cloud-formation-artifacts/6ee88c004f3980a47f7f0d36f6fc6ac4
       Role:
         Fn::GetAtt:
         - LambdaRole
         - Arn
       Timeout: 360
-      Runtime: python3.10
+      Runtime: python3.9
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -124,18 +124,17 @@ Resources:
       Description: Test build to validate the resources created by CFN templates
       Source:
         Type: NO_SOURCE
-        BuildSpec: "version: 0.2\nphases:\n  build:\n    install:\n      runtime-versions:\n\
-          \        python: 3.10\n    commands:\n      - mkdir -p build/python\n  \
-          \    - echo \"pandas==1.2.3\" > requirements.txt\n      - echo \"numpy==1.20.2\"\
-          \ >> requirements.txt\n      - echo \"s3fs==2022.10.0\" >> requirements.txt\n\
-          \      - echo \"pytz==2022.5\" >> requirements.txt\n      - pip install\
-          \ -r requirements.txt -t ./build/python\n      - pip freeze --path ./build/python\n\
-          \      - cd ./build && zip -r ../temp.zip .\n      - pwd\n      - ls -l\n\
-          \      - ls -lrt\n      - cd ..\n      - ls -l\n      - out=$(aws lambda\
-          \ publish-layer-version --layer-name ${LayerName} --zip-file fileb://temp.zip\
-          \ --compatible-runtimes python3.10| jq .LayerVersionArn |tr -d \"\\\"\"\
-          )\n      - aws ssm put-parameter  --name ${SSMParameterName} --value ${out}\
-          \ --type \"String\" --overwrite\n"
+        BuildSpec: "version: 0.2\nphases:\n  build:\n    commands:\n      - mkdir\
+          \ -p build/python\n      - echo \"numpy==1.20.2\" >> requirements.txt\n\
+          \      - echo \"pandas==1.2.3\" >> requirements.txt\n      - echo \"s3fs==2022.10.0\"\
+          \ >> requirements.txt\n      - echo \"pytz==2022.5\" >> requirements.txt\n\
+          \      - pip install -r requirements.txt -t ./build/python\n      - pip\
+          \ freeze --path ./build/python\n      - cd ./build && zip -r ../temp.zip\
+          \ .\n      - pwd\n      - ls -l\n      - ls -l\n      - ls -lrt\n      -\
+          \ cd ..\n      - ls -l\n      - out=$(aws lambda publish-layer-version --layer-name\
+          \ ${LayerName} --zip-file fileb://temp.zip --compatible-runtimes python3.8\
+          \ python3.9| jq .LayerVersionArn |tr -d \"\\\"\")\n      - aws ssm put-parameter\
+          \  --name ${SSMParameterName} --value ${out} --type \"String\" --overwrite\n"
       ServiceRole:
         Fn::GetAtt:
         - CodeBuildRole
@@ -242,7 +241,7 @@ Resources:
           - s3:Put*
           - s3:Delete*
           Resource:
-            Fn::Sub: arn:aws:s3:::${pS3BucketName}/*
+          - Fn::Sub: arn:aws:s3:::${pS3BucketName}/*
         - Sid: s3deletebucket
           Effect: Allow
           Action:
@@ -296,6 +295,16 @@ Resources:
           - Fn::GetAtt:
             - CrawlerStatusCheckFunction
             - Arn
+        - Sid: s3putaccess
+          Effect: Allow
+          Action:
+          - s3:Get*
+          - s3:Put*
+          - s3:Delete*
+          Resource:
+          - Fn::GetAtt:
+            - StartETLFunction
+            - Arn
         - Sid: glueaccess
           Effect: Allow
           Action:
@@ -343,8 +352,8 @@ Resources:
         - LambdaRole
         - Arn
       Handler: start_codebuild.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
-      Runtime: python3.10
+      CodeUri: s3://aws-cloud-formation-artifacts/6ee88c004f3980a47f7f0d36f6fc6ac4
+      Runtime: python3.9
       Timeout: 500
       Environment:
         Variables:
@@ -366,8 +375,8 @@ Resources:
         - LambdaRole
         - Arn
       Handler: start_etl.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
-      Runtime: python3.10
+      CodeUri: s3://aws-cloud-formation-artifacts/6ee88c004f3980a47f7f0d36f6fc6ac4
+      Runtime: python3.8
       Timeout: 500
       MemorySize: 512
   StartCrawlerFunction:
@@ -378,8 +387,8 @@ Resources:
         - LambdaRole
         - Arn
       Handler: start_crawler.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
-      Runtime: python3.10
+      CodeUri: s3://aws-cloud-formation-artifacts/6ee88c004f3980a47f7f0d36f6fc6ac4
+      Runtime: python3.9
       Timeout: 60
   CrawlerStatusCheckFunction:
     Type: AWS::Serverless::Function
@@ -389,8 +398,8 @@ Resources:
         - LambdaRole
         - Arn
       Handler: check_crawler.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
-      Runtime: python3.10
+      CodeUri: s3://aws-cloud-formation-artifacts/6ee88c004f3980a47f7f0d36f6fc6ac4
+      Runtime: python3.9
       Timeout: 30
       Environment:
         Variables:
@@ -402,16 +411,16 @@ Resources:
       Description: My layer
       ContentUri: s3://aws-cloud-formation-artifacts/dcfdf8676dbf4c9b3388cd8a32ccf93b
       CompatibleRuntimes:
-      - python3.10
+      - python3.9
       LicenseInfo: MIT
   LambdaLayerFactory:
     Type: AWS::Serverless::LayerVersion
     Properties:
       LayerName: etlfactory
       Description: My layer
-      ContentUri: s3://aws-cloud-formation-artifacts/321cb9a0e81b17b790f2145b481be034
+      ContentUri: s3://aws-cloud-formation-artifacts/1d379521677ea1b051fdb63e10aefb56
       CompatibleRuntimes:
-      - python3.10
+      - python3.9
       LicenseInfo: MIT
   StartStepFunction:
     Type: AWS::Serverless::Function
@@ -421,8 +430,8 @@ Resources:
         - BasicLambdaRole
         - Arn
       Handler: start_step_function.lambda_handler
-      CodeUri: s3://aws-cloud-formation-artifacts/e9b4adcb0e57a68f7dc5f3342683bd28
-      Runtime: python3.10
+      CodeUri: s3://aws-cloud-formation-artifacts/6ee88c004f3980a47f7f0d36f6fc6ac4
+      Runtime: python3.9
       Timeout: 60
       Environment:
         Variables:

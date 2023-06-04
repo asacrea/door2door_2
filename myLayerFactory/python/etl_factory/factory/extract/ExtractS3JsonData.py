@@ -18,10 +18,12 @@ class ExtractS3JsonData(AbsExtraction):
 
             print("Successfully read")
             result['Validation'] = "SUCCESS"
-            result['Reason'] = ""
+            result['Reason'] = "File readed"
+            result['Location'] = f"S3://{bucket_name}{key_name}"
             return result, file_content
         except:
             result['Validation'] = "FAILURE"
+            result['Location'] = f"S3://{bucket_name}{key_name}"
             result['Reason'] = "Error while reading Json file in the source bucket"
             print('Error while reading Json ')
             return result, None
