@@ -19,16 +19,6 @@ Parameters:
     Description: "Folder to store transformed dataset"
     Default: "transform"
 
-  pArchiveFolder:
-    Type: String
-    Description: "Folder to store archived dataset"
-    Default: "archive"
-
-  pErrorFolder:
-    Type: String
-    Description: "Folder to store dataset for any error"
-    Default: "error"
-
   pSourceFolder:
     Type: String
     Description: "Source Folder to upload raw csv dataset to trigger the AWS Step functions"
@@ -52,7 +42,7 @@ Resources:
     Properties:
       ServiceToken: !GetAtt LambdaFunctionS3Object.Arn
       the_bucket: !Ref S3Bucket
-      dirs_to_create: !Join [ ",", [!Ref pSourceFolder,!Ref pStageFolder,!Ref pErrorFolder,!Ref pArchiveFolder,!Ref pTransformFolder]]
+      dirs_to_create: !Join [ ",", [!Ref pSourceFolder,!Ref pStageFolder,!Ref pTransformFolder]]
 
   StartCodeBuildProject:
     Type: Custom::StartCodeBuildProject

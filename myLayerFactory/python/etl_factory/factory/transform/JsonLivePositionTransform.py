@@ -29,6 +29,6 @@ class JsonLivePositionTransform(AbsTransform):
             return result, df_data
         except:
             result['Validation'] = "FAILURE"
-            result['Reason'] = "Error while reading Json file in the source bucket"
-            print('Error while reading Json ')
+            result['Reason'] = "Error while transforming Json file in the source bucket"
+            print('Error while transforming Json file')
             return result, None
