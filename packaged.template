@@ -418,7 +418,7 @@ Resources:
     Properties:
       LayerName: etlfactory
       Description: My layer
-      ContentUri: s3://aws-cloud-formation-artifacts/70f0e377e62041f3390fa485a7629ea4
+      ContentUri: s3://aws-cloud-formation-artifacts/fbd6388ea1c919b2adf2dd236e4af6a6
       CompatibleRuntimes:
       - python3.9
       LicenseInfo: MIT
